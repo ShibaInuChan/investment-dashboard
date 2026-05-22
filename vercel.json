@@ -1,5 +1,12 @@
 {
-  "rewrites": [
-    { "source": "/api/indicators", "destination": "/api/indicators" }
+  "version": 2,
+  "builds": [
+    { "src": "api/indicators.js", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/indicators", "dest": "/api/indicators.js" },
+    { "src": "/(.*)", "dest": "/public/$1" },
+    { "src": "/", "dest": "/public/index.html" }
   ]
 }
