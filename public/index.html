@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投資マクロダッシュボード</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #666; margin-bottom: 24px; }
+    .section-label { font-size: 11px; font-weight: 500; color: #999; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; margin-top: 24px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+    .metric-card { background: #fff; border-radius: 8px; padding: 14px 16px; border: 0.5px solid #e0e0e0; }
+    .mlabel { font-size: 12px; color: #666; margin-bottom: 6px; }
+    .mvalue { font-size: 22px; font-weight: 500; line-height: 1; }
+    .munit { font-size: 13px; font-weight: 400; color: #666; }
+    .mdelta { font-size: 12px; margin-top: 6px; color: #666; }
+    .delta-up { color: #1D9E75; }
+    .delta-down { color: #D85A30; }
+    .spread-box { background: #fff; border-radius: 8px; padding: 16px; border: 0.5px solid #e0e0e0; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; }
+    .spread-val { font-size: 32px; font-weight: 500; }
+    .spread-info { flex: 1; }
+    .spread-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+    .spread-sub { font-size: 11px; color: #999; margin-top: 6px; }
+    .bar-wrap { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; background: #378ADD; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 500; background: #FAEEDA; color: #854F0B; white-space: nowrap; }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .chart-box { background: #fff; border-radius: 8px; padding: 16px; border: 0.5px solid #e0e0e0; }
+    .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .chart-sub { font-size: 12px; color: #666; font-weight: 400; }
+    .legend-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #666; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .data-note { font-size: 11px; color: #999; margin-top: 4px; }
+    .updated { font-size: 11px; color: #999; text-align: right; margin-top: 16px; }
+    @media (max-width: 500px) { .chart-grid { grid-template-columns: 1fr; } .spread-box { flex-direction: column; } }
+  </style>
+</head>
+<body>
+
+  <h1>📊 投資マクロダッシュボード</h1>
+  <p class="subtitle">FREDリアルタイムデータ — 米国・日本の主要経済指標</p>
+
+  <div class="section-label">金利スプレッド（日米金利差）</div>
+  <div class="spread-box">
+    <div>
+      <div class="spread-label">米10年債 − 日10年債</div>
+      <div class="spread-val" id="spread">--</div>
+    </div>
+    <div class="spread-info">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:4px">
+        <span id="us10y-label">米10年 --%</span>
+        <span id="jp10y-label">日10年 --%</span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" id="spread-bar" style="width:50%"></div></div>
+      <div class="spread-sub">スプレッド5%ptを上限としたバー表示</div>
+    </div>
+    <span class="badge" id="spread-badge">読み込み中...</span>
+  </div>
+
+  <div class="section-label">主要経済指標</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="mlabel">米CPI（前年比）</div>
+      <div class="mvalue" id="cpi-val">--<span class="munit">%</span></div>
+      <div class="mdelta" id="cpi-delta">読み込み中...</div>
+    </div>
+    <div class="metric-card">
+      <div class="mlabel">米コアCPI（前年比）</div>
+      <div class="mvalue" id="core-cpi-val">--<span class="munit">%</span></div>
+      <div class="mdelta" id="core-cpi-delta">読み込み中...</div>
+    </div>
+    <div class="metric-card">
+      <div class="mlabel">米失業率</div>
+      <div class="mvalue" id="unemployment-val">--<span class="munit">%</span></div>
+      <div class="mdelta" id="unemployment-delta">読み込み中...</div>
+    </div>
+    <div class="metric-card">
+      <div class="mlabel">FFレート</div>
+      <div class="mvalue" id="fed-val">--<span class="munit">%</span></div>
+      <div class="mdelta" id="fed-delta">読み込み中...</div>
+    </div>
+  </div>
+
+  <div class="section-label">チャート</div>
+  <div class="chart-grid">
+    <div class="chart-box">
+      <div class="chart-title">米CPI推移<span class="chart-sub">前年比%</span></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>総合CPI</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>コアCPI</div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="cpiChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">米失業率推移<span class="chart-sub">%</span></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>失業率</div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="unemployChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-box">
+      <div class="chart-title">米10年債利回り<span class="chart-sub">日次 %</span></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>米10年債</div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="us10yChart"></canvas>
+      </div>
+      <div class="data-note">直近20営業日</div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">日本10年債利回り<span class="chart-sub">月次 %</span></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>日10年債</div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="jp10yChart"></canvas>
+      </div>
+      <div class="data-note">月次データ（FRED）— 約1ヶ月遅れ</div>
+    </div>
+  </div>
+
+  <div class="updated" id="updated-at">データ取得中...</div>
+
+<script>
+function deltaText(curr, prev) {
+  if (curr == null || prev == null) return '';
+  const diff = (parseFloat(curr) - parseFloat(prev)).toFixed(2);
+  const sign = diff > 0 ? '+' : '';
+  return `前回比 ${sign}${diff}pt`;
+}
+function deltaClass(curr, prev) {
+  if (curr == null || prev == null) return '';
+  return parseFloat(curr) > parseFloat(prev) ? 'delta-up' : 'delta-down';
+}
+
+function makeChart(id, labels, datasets, yCallback) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: '#888', maxTicksLimit: 6 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { font: { size: 10 }, color: '#888', callback: yCallback || (v => v + '%') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+async function loadData() {
+  const res = await fetch('/api/indicators');
+  const d = await res.json();
+
+  const us10y = d.us10y;
+  const jp10y = d.jp10y;
+  const cpiYoy = d.cpiYoy;
+  const coreYoy = d.coreYoy;
+  const unemployment = d.unemployment;
+  const fedRate = d.fedRate;
+
+  // スプレッド（米最新日次 − 日最新月次）
+  const usLast = parseFloat(us10y[us10y.length - 1].value);
+  const jpLast = parseFloat(jp10y[jp10y.length - 1].value);
+  const spreadVal = (usLast - jpLast).toFixed(2);
+  document.getElementById('spread').textContent = spreadVal + ' %pt';
+  document.getElementById('us10y-label').textContent = `米10年 ${usLast.toFixed(2)}%（日次最新）`;
+  document.getElementById('jp10y-label').textContent = `日10年 ${jpLast.toFixed(2)}%（月次最新）`;
+  document.getElementById('spread-bar').style.width = Math.min(parseFloat(spreadVal) / 5 * 100, 100) + '%';
+  document.getElementById('spread-badge').textContent = parseFloat(spreadVal) > 3 ? '円安圧力 強' : '円安圧力 中';
+
+  // CPI
+  const cpiLast = cpiYoy[cpiYoy.length - 1].value;
+  const cpiPrev = cpiYoy[cpiYoy.length - 2].value;
+  document.getElementById('cpi-val').innerHTML = `${cpiLast}<span class="munit">%</span>`;
+  const cpiDeltaEl = document.getElementById('cpi-delta');
+  cpiDeltaEl.textContent = deltaText(cpiLast, cpiPrev);
+  cpiDeltaEl.className = 'mdelta ' + deltaClass(cpiLast, cpiPrev);
+
+  // コアCPI
+  const coreLast = coreYoy[coreYoy.length - 1].value;
+  const corePrev = coreYoy[coreYoy.length - 2].value;
+  document.getElementById('core-cpi-val').innerHTML = `${coreLast}<span class="munit">%</span>`;
+  const coreDeltaEl = document.getElementById('core-cpi-delta');
+  coreDeltaEl.textContent = deltaText(coreLast, corePrev);
+  coreDeltaEl.className = 'mdelta ' + deltaClass(coreLast, corePrev);
+
+  // 失業率
+  const uLast = parseFloat(unemployment[unemployment.length - 1].value);
+  const uPrev = parseFloat(unemployment[unemployment.length - 2].value);
+  document.getElementById('unemployment-val').innerHTML = `${uLast.toFixed(1)}<span class="munit">%</span>`;
+  const uDeltaEl = document.getElementById('unemployment-delta');
+  uDeltaEl.textContent = deltaText(uLast, uPrev);
+  uDeltaEl.className = 'mdelta ' + deltaClass(uLast, uPrev);
+
+  // FFレート
+  const fLast = parseFloat(fedRate[fedRate.length - 1].value);
+  const fPrev = parseFloat(fedRate[fedRate.length - 2].value);
+  document.getElementById('fed-val').innerHTML = `${fLast.toFixed(2)}<span class="munit">%</span>`;
+  const fDeltaEl = document.getElementById('fed-delta');
+  fDeltaEl.textContent = deltaText(fLast, fPrev);
+  fDeltaEl.className = 'mdelta ' + deltaClass(fLast, fPrev);
+
+  // CPIチャート
+  makeChart('cpiChart',
+    cpiYoy.slice(-12).map(d => d.date),
+    [
+      { label: '総合CPI', data: cpiYoy.slice(-12).map(d => d.value), borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.08)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: true },
+      { label: 'コアCPI', data: coreYoy.slice(-12).map(d => d.value), borderColor: '#D85A30', backgroundColor: 'transparent', borderWidth: 2, borderDash: [4,3], pointRadius: 2, tension: 0.3 }
+    ]
+  );
+
+  // 失業率チャート
+  makeChart('unemployChart',
+    unemployment.slice(-12).map(d => d.date.slice(0,7)),
+    [{ label: '失業率', data: unemployment.slice(-12).map(d => parseFloat(d.value)), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: true }]
+  );
+
+  // 米10年債（日次）
+  makeChart('us10yChart',
+    us10y.slice(-20).map(d => d.date.slice(5)),
+    [{ label: '米10年債', data: us10y.slice(-20).map(d => parseFloat(d.value)), borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }]
+  );
+
+  // 日10年債（月次）
+  makeChart('jp10yChart',
+    jp10y.slice(-12).map(d => d.date.slice(0,7)),
+    [{ label: '日10年債', data: jp10y.slice(-12).map(d => Math.round(parseFloat(d.value) * 100) / 100), borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }],
+    v => parseFloat(v).toFixed(2) + '%'
+  );
+  document.getElementById('updated-at').textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
+}
+
+loadData();
+</script>
+</body>
+</html>
