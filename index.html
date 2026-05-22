@@ -29,6 +29,7 @@
     .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 500; background: #FAEEDA; color: #854F0B; white-space: nowrap; }
     .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .chart-box { background: #fff; border-radius: 8px; padding: 16px; border: 0.5px solid #e0e0e0; }
+    .chart-box-full { background: #fff; border-radius: 8px; padding: 16px; border: 0.5px solid #e0e0e0; margin-bottom: 12px; }
     .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .chart-sub { font-size: 12px; color: #666; font-weight: 400; }
     .legend-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
@@ -129,6 +130,17 @@
       </div>
       <div class="data-note">月次データ（FRED）— 約1ヶ月遅れ</div>
     </div>
+  </div>
+
+<div class="chart-box-full">
+    <div class="chart-title">日米金利差スプレッド推移<span class="chart-sub">%pt</span></div>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-dot" style="background:#888780"></div>スプレッド</div>
+    </div>
+    <div style="position:relative;width:100%;height:160px">
+      <canvas id="spreadChart"></canvas>
+    </div>
+    <div class="data-note">米10年債（日次最新）− 日10年債（月次最新）の差</div>
   </div>
 
   <div class="updated" id="updated-at">データ取得中...</div>
@@ -241,6 +253,21 @@ async function loadData() {
     [{ label: '日10年債', data: jp10y.slice(-12).map(d => Math.round(parseFloat(d.value) * 100) / 100), borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }],
     v => parseFloat(v).toFixed(2) + '%'
   );
+
+  // 日米金利差スプレッドチャート
+  const spreadLabels = jp10y.slice(-12).map(d => d.date.slice(0, 7));
+  const spreadData = jp10y.slice(-12).map(d => {
+    const jpVal = parseFloat(d.value);
+    const usVal = parseFloat(us10y[us10y.length - 1].value);
+    return Math.round((usVal - jpVal) * 100) / 100;
+  });
+
+  makeChart('spreadChart',
+    spreadLabels,
+    [{ label: 'スプレッド', data: spreadData, borderColor: '#888780', backgroundColor: 'rgba(136,135,128,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }],
+    v => parseFloat(v).toFixed(2) + 'pt'
+  );
+
   document.getElementById('updated-at').textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
 }
 

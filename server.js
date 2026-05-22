@@ -6,7 +6,7 @@ const app = express();
 const PORT = 3000;
 const FRED_API_KEY = process.env.FRED_API_KEY;
 
-app.use(express.static('public'));
+app.use(express.static('.'));
 
 async function fredFetch(seriesId, limit) {
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
