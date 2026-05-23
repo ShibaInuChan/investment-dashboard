@@ -37,6 +37,9 @@
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
     .data-note { font-size: 11px; color: #999; margin-top: 4px; }
     .updated { font-size: 11px; color: #999; text-align: right; margin-top: 16px; }
+    .insight-btn { font-size:12px; padding:5px 12px; border:0.5px solid #ddd; border-radius:20px; background:transparent; color:#666; cursor:pointer; }
+    .insight-btn:hover { background:#f0f0f0; }
+    .insight-btn:disabled { opacity:0.5; cursor:not-allowed; }
     @media (max-width: 500px) { .chart-grid { grid-template-columns: 1fr; } .spread-box { flex-direction: column; } }
   </style>
 </head>
@@ -141,6 +144,24 @@
       <canvas id="spreadChart"></canvas>
     </div>
     <div class="data-note">米10年債（日次最新）− 日10年債（月次最新）の差</div>
+  </div>
+
+<div class="chart-box-full" style="margin-top:12px">
+    <div class="chart-title">
+      AI投資インサイト
+      <span style="font-size:11px;color:#999;font-weight:400">Claude AIによる分析</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+      <button class="insight-btn" onclick="getInsight('総合')">今週を分析する</button>
+      <button class="insight-btn" onclick="toggleLog()" id="log-toggle-btn">過去のログを見る</button>
+    </div>
+    <div id="insight-output" style="font-size:13px;line-height:1.8;color:#333;background:#f9f9f9;border-radius:6px;padding:12px;min-height:60px">
+      <span style="color:#999">上のボタンを押すとAIが現在の指標を分析します。</span>
+    </div>
+    <div id="insight-log" style="display:none;margin-top:12px">
+      <div style="font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">過去のインサイト（直近7件）</div>
+      <div id="insight-log-content"></div>
+    </div>
   </div>
 
   <div class="updated" id="updated-at">データ取得中...</div>
@@ -269,6 +290,107 @@ async function loadData() {
   );
 
   document.getElementById('updated-at').textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
+}
+
+async function getInsight(type) {
+  const output = document.getElementById('insight-output');
+  const buttons = document.querySelectorAll('.insight-btn');
+
+  buttons.forEach(b => b.disabled = true);
+  output.innerHTML = '<span style="color:#999">分析中...</span>';
+
+  try {
+    const res = await fetch('/api/indicators');
+    const d = await res.json();
+
+    const us10y = parseFloat(d.us10y[d.us10y.length - 1].value);
+    const jp10y = parseFloat(d.jp10y[d.jp10y.length - 1].value);
+    const spread = (us10y - jp10y).toFixed(2);
+    const cpi = d.cpiYoy[d.cpiYoy.length - 1].value;
+    const coreCpi = d.coreYoy[d.coreYoy.length - 1].value;
+    const unemployment = parseFloat(d.unemployment[d.unemployment.length - 1].value);
+    const fedRate = parseFloat(d.fedRate[d.fedRate.length - 1].value);
+
+    const insightRes = await fetch('/api/insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        indicators: { us10y, jp10y, spread, cpi, coreCpi, unemployment, fedRate }
+      })
+    });
+    const data = await insightRes.json();
+    if (data.error) {
+      output.innerHTML = '<span style="color:#D85A30">APIエラー: ' + data.error + '</span>';
+    } else {
+      output.innerHTML = formatInsight(data.insight);
+      saveInsightLog(data.insight);
+    }
+  } catch(e) {
+    output.innerHTML = '<span style="color:#D85A30">エラーが発生しました: ' + e.message + '</span>';
+  }
+
+  buttons.forEach(b => b.disabled = false);
+}
+
+function saveInsightLog(text) {
+  const logs = JSON.parse(localStorage.getItem('insightLogs') || '[]');
+  const today = new Date().toLocaleDateString('ja-JP');
+  const filtered = logs.filter(l => l.date !== today);
+  filtered.unshift({ date: today, text });
+  localStorage.setItem('insightLogs', JSON.stringify(filtered.slice(0, 7)));
+}
+
+function extractTitles(text) {
+  const lines = text.split('\n');
+  return lines
+    .filter(l => l.match(/【.+】/))
+    .map(l => l.replace(/。\s+/g, '。').replace(/\s+/g, ' ').trim())
+    .join('<br>');
+}
+
+function renderLog() {
+  const logs = JSON.parse(localStorage.getItem('insightLogs') || '[]');
+  const container = document.getElementById('insight-log-content');
+  if (logs.length === 0) {
+    container.innerHTML = '<p style="font-size:13px;color:#999">まだログがありません。</p>';
+    return;
+  }
+  container.innerHTML = logs.map(l => `
+    <div style="border-left:2px solid #e0e0e0;padding-left:12px;margin-bottom:14px">
+      <div style="font-size:11px;color:#999;margin-bottom:5px">${l.date}</div>
+      <div style="font-size:12px;line-height:1.8;color:#555">${extractTitles(l.text)}</div>
+    </div>
+  `).join('');
+}
+
+function toggleLog() {
+  const log = document.getElementById('insight-log');
+  const btn = document.getElementById('log-toggle-btn');
+  if (log.style.display === 'none') {
+    renderLog();
+    log.style.display = 'block';
+    btn.textContent = 'ログを閉じる';
+  } else {
+    log.style.display = 'none';
+    btn.textContent = '過去のログを見る';
+  }
+}
+
+function formatInsight(text) {
+  return text
+    .replace(/。\s+/g, '。')
+    .replace(/\s+([はがをにでもとのや、。）」])/g, '$1')
+    .replace(/[#*`]/g, '')
+    .replace(/---+/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{2,}/g, '\n\n')
+    .trim()
+    .replace(/【([^】]+)】/g, '<strong style="display:block;font-size:13px;margin-top:16px;margin-bottom:4px;color:#1a1a1a;">【$1】</strong>')
+    .replace(/\n\n/g, '</p><p style="margin-top:8px">')
+    .replace(/\n/g, ' ')
+    .replace(/^/, '<p style="margin-top:0">')
+    .replace(/$/, '</p>');
 }
 
 loadData();

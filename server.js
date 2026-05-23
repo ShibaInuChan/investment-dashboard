@@ -7,6 +7,7 @@ const PORT = 3000;
 const FRED_API_KEY = process.env.FRED_API_KEY;
 
 app.use(express.static('.'));
+app.use(express.json());
 
 async function fredFetch(seriesId, limit) {
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
@@ -55,6 +56,12 @@ app.get('/api/indicators', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+app.post('/api/insight', async (req, res) => {
+  const { createRequire } = require('module');
+  const handler = require('./api/insight.js');
+  return handler(req, res);
 });
 
 app.listen(PORT, () => {

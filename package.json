@@ -11,8 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
+    "express": "^4.22.2",
     "node-fetch": "^2.7.0"
   }
 }
