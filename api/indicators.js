@@ -1,7 +1,9 @@
 const fetch = require('node-fetch');
 
-let cache = null;
-let cacheTime = 0;
+// 系列ごとに個別キャッシュ
+const seriesCache = {};
+let resultCache = null;
+let resultCacheTime = 0;
 const CACHE_TTL = 60 * 60 * 1000; // 1時間
 
 module.exports = async (req, res) => {
@@ -11,21 +13,37 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'FRED_API_KEY is not set' });
   }
 
-  // キャッシュが有効なら即返す
-  if (cache && Date.now() - cacheTime < CACHE_TTL) {
+  // 全体キャッシュが有効なら即返す
+  if (resultCache && Date.now() - resultCacheTime < CACHE_TTL) {
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
-    return res.json(cache);
+    return res.json(resultCache);
   }
 
   async function fredFetch(seriesId, limit) {
+    const cached = seriesCache[seriesId];
+
+    // 個別キャッシュが有効なら使う
+    if (cached && Date.now() - cached.time < CACHE_TTL) {
+      return cached.data;
+    }
+
     const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
     const r = await fetch(url);
     const data = await r.json();
+
     if (!data.observations) {
+      // 429等の場合、古い個別キャッシュで代替
+      if (cached) {
+        console.warn(`FRED error for ${seriesId}, using stale cache:`, data.error_message);
+        return cached.data;
+      }
       console.error(`FRED error for ${seriesId}:`, JSON.stringify(data));
       throw new Error(`FRED API error for ${seriesId}: ${JSON.stringify(data)}`);
     }
-    return data.observations.filter(d => d.value !== '.').reverse();
+
+    const result = data.observations.filter(d => d.value !== '.').reverse();
+    seriesCache[seriesId] = { data: result, time: Date.now() };
+    return result;
   }
 
   try {
@@ -58,17 +76,16 @@ module.exports = async (req, res) => {
 
     const result = { us10y, jp10y, cpiYoy, coreYoy, unemployment, fedRate };
 
-    cache = result;
-    cacheTime = Date.now();
+    resultCache = result;
+    resultCacheTime = Date.now();
 
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
     res.json(result);
   } catch (error) {
-    // レートリミット等でFRED APIが失敗した場合、古いキャッシュがあれば返す
-    if (cache) {
-      console.warn('FRED API error, returning stale cache:', error.message);
+    if (resultCache) {
+      console.warn('Using stale result cache due to error:', error.message);
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=3600');
-      return res.json(cache);
+      return res.json(resultCache);
     }
     console.error('indicators error:', error.message);
     res.status(500).json({ error: error.message });
