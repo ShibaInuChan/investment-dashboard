@@ -3,10 +3,19 @@ const fetch = require('node-fetch');
 module.exports = async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY;
 
+  if (!FRED_API_KEY) {
+    console.error('FRED_API_KEY is not set');
+    return res.status(500).json({ error: 'FRED_API_KEY is not set' });
+  }
+
   async function fredFetch(seriesId, limit) {
     const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
     const r = await fetch(url);
     const data = await r.json();
+    if (!data.observations) {
+      console.error(`FRED error for ${seriesId}:`, JSON.stringify(data));
+      throw new Error(`FRED API error for ${seriesId}: ${JSON.stringify(data)}`);
+    }
     return data.observations.filter(d => d.value !== '.').reverse();
   }
 
@@ -40,6 +49,7 @@ module.exports = async (req, res) => {
 
     res.json({ us10y, jp10y, cpiYoy, coreYoy, unemployment, fedRate });
   } catch (error) {
+    console.error('indicators error:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
