@@ -1,11 +1,20 @@
 const fetch = require('node-fetch');
 
+let cache = null;
+let cacheTime = 0;
+const CACHE_TTL = 60 * 60 * 1000; // 1時間
+
 module.exports = async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY;
 
   if (!FRED_API_KEY) {
-    console.error('FRED_API_KEY is not set');
     return res.status(500).json({ error: 'FRED_API_KEY is not set' });
+  }
+
+  // キャッシュが有効なら即返す
+  if (cache && Date.now() - cacheTime < CACHE_TTL) {
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
+    return res.json(cache);
   }
 
   async function fredFetch(seriesId, limit) {
@@ -47,8 +56,20 @@ module.exports = async (req, res) => {
       value: yoyPct(coreCpi, 12 + i)
     }));
 
-    res.json({ us10y, jp10y, cpiYoy, coreYoy, unemployment, fedRate });
+    const result = { us10y, jp10y, cpiYoy, coreYoy, unemployment, fedRate };
+
+    cache = result;
+    cacheTime = Date.now();
+
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
+    res.json(result);
   } catch (error) {
+    // レートリミット等でFRED APIが失敗した場合、古いキャッシュがあれば返す
+    if (cache) {
+      console.warn('FRED API error, returning stale cache:', error.message);
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=3600');
+      return res.json(cache);
+    }
     console.error('indicators error:', error.message);
     res.status(500).json({ error: error.message });
   }
