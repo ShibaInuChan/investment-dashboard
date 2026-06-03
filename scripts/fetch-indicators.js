@@ -61,6 +61,7 @@ async function main() {
   const result = { us10y, jp10y, cpiYoy, coreYoy, unemployment, fedRate, fetchedAt: new Date().toISOString() };
 
   const outPath = path.join(__dirname, '..', 'data', 'indicators.json');
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(result, null, 2));
   console.log('Saved to', outPath);
 }
