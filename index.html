@@ -265,7 +265,8 @@ async function loadData() {
   // 米10年債（日次）
   makeChart('us10yChart',
     us10y.slice(-20).map(d => d.date.slice(5)),
-    [{ label: '米10年債', data: us10y.slice(-20).map(d => parseFloat(d.value)), borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }]
+    [{ label: '米10年債', data: us10y.slice(-20).map(d => parseFloat(d.value)), borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }],
+    v => parseFloat(v).toFixed(2) + '%'
   );
 
   // 日10年債（月次）
