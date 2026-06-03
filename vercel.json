@@ -3,11 +3,13 @@
   "builds": [
     { "src": "api/indicators.js", "use": "@vercel/node" },
     { "src": "api/insight.js", "use": "@vercel/node" },
+    { "src": "api/auth.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/indicators", "dest": "/api/indicators.js" },
     { "src": "/api/insight", "dest": "/api/insight.js" },
+    { "src": "/api/auth", "dest": "/api/auth.js" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
