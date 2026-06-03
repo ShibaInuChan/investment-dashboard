@@ -59,8 +59,12 @@ app.get('/api/indicators', async (req, res) => {
 });
 
 app.post('/api/insight', async (req, res) => {
-  const { createRequire } = require('module');
   const handler = require('./api/insight.js');
+  return handler(req, res);
+});
+
+app.post('/api/auth', async (req, res) => {
+  const handler = require('./api/auth.js');
   return handler(req, res);
 });
 
