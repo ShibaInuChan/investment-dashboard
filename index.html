@@ -41,29 +41,9 @@
     .insight-btn:hover { background:#f0f0f0; }
     .insight-btn:disabled { opacity:0.5; cursor:not-allowed; }
     @media (max-width: 500px) { .chart-grid { grid-template-columns: 1fr; } .spread-box { flex-direction: column; } }
-    #auth-screen { position:fixed; inset:0; background:#f5f5f5; display:flex; align-items:center; justify-content:center; z-index:9999; }
-    #auth-box { background:#fff; border-radius:12px; padding:32px 28px; border:0.5px solid #e0e0e0; width:100%; max-width:320px; }
-    #auth-box h2 { font-size:16px; font-weight:500; margin-bottom:4px; }
-    #auth-box p { font-size:13px; color:#666; margin-bottom:20px; }
-    #auth-input { width:100%; padding:10px 12px; border:0.5px solid #ddd; border-radius:6px; font-size:14px; outline:none; box-sizing:border-box; }
-    #auth-input:focus { border-color:#378ADD; }
-    #auth-btn { width:100%; margin-top:10px; padding:10px; background:#1a1a1a; color:#fff; border:none; border-radius:6px; font-size:14px; cursor:pointer; }
-    #auth-btn:hover { background:#333; }
-    #auth-error { font-size:12px; color:#D85A30; margin-top:8px; display:none; }
-    #main-content { display:none; }
   </style>
 </head>
 <body>
-
-  <div id="auth-screen">
-    <div id="auth-box">
-      <h2>📊 投資マクロダッシュボード</h2>
-      <p>パスワードを入力してください</p>
-      <input type="password" id="auth-input" placeholder="パスワード" autocomplete="current-password" />
-      <button id="auth-btn" onclick="submitAuth()">ログイン</button>
-      <div id="auth-error">パスワードが正しくありません</div>
-    </div>
-  </div>
 
   <div id="main-content">
   <h1>📊 投資マクロダッシュボード</h1>
@@ -173,15 +153,10 @@
       <span style="font-size:11px;color:#999;font-weight:400">Claude AIによる分析</span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-      <button class="insight-btn" onclick="getInsight('総合')">今週を分析する</button>
-      <button class="insight-btn" onclick="toggleLog()" id="log-toggle-btn">過去のログを見る</button>
+      <button class="insight-btn" onclick="getInsight()">今月のまとめを見る</button>
     </div>
     <div id="insight-output" style="font-size:13px;line-height:1.8;color:#333;background:#f9f9f9;border-radius:6px;padding:12px;min-height:60px">
-      <span style="color:#999">上のボタンを押すとAIが現在の指標を分析します。</span>
-    </div>
-    <div id="insight-log" style="display:none;margin-top:12px">
-      <div style="font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">過去のインサイト（直近7件）</div>
-      <div id="insight-log-content"></div>
+      <span style="color:#999">上のボタンを押すと今月のAI分析を表示します。毎月25日に更新されます。</span>
     </div>
   </div>
 
@@ -315,39 +290,21 @@ async function loadData() {
   document.getElementById('updated-at').textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
 }
 
-async function getInsight(type) {
+async function getInsight() {
   const output = document.getElementById('insight-output');
   const buttons = document.querySelectorAll('.insight-btn');
 
   buttons.forEach(b => b.disabled = true);
-  output.innerHTML = '<span style="color:#999">分析中...</span>';
+  output.innerHTML = '<span style="color:#999">読み込み中...</span>';
 
   try {
-    const res = await fetch('/api/indicators');
-    const d = await res.json();
-
-    const us10y = parseFloat(d.us10y[d.us10y.length - 1].value);
-    const jp10y = parseFloat(d.jp10y[d.jp10y.length - 1].value);
-    const spread = (us10y - jp10y).toFixed(2);
-    const cpi = d.cpiYoy[d.cpiYoy.length - 1].value;
-    const coreCpi = d.coreYoy[d.coreYoy.length - 1].value;
-    const unemployment = parseFloat(d.unemployment[d.unemployment.length - 1].value);
-    const fedRate = parseFloat(d.fedRate[d.fedRate.length - 1].value);
-
-    const insightRes = await fetch('/api/insight', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        indicators: { us10y, jp10y, spread, cpi, coreCpi, unemployment, fedRate }
-      })
-    });
-    const data = await insightRes.json();
+    const res = await fetch('/api/insight');
+    const data = await res.json();
     if (data.error) {
-      output.innerHTML = '<span style="color:#D85A30">APIエラー: ' + data.error + '</span>';
+      output.innerHTML = '<span style="color:#D85A30">' + data.error + '</span>';
     } else {
-      output.innerHTML = formatInsight(data.insight);
-      saveInsightLog(data.insight);
+      const date = new Date(data.generatedAt).toLocaleDateString('ja-JP');
+      output.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:8px">生成日: ' + date + '</div>' + formatInsight(data.insight);
     }
   } catch(e) {
     output.innerHTML = '<span style="color:#D85A30">エラーが発生しました: ' + e.message + '</span>';
@@ -356,49 +313,8 @@ async function getInsight(type) {
   buttons.forEach(b => b.disabled = false);
 }
 
-function saveInsightLog(text) {
-  const logs = JSON.parse(localStorage.getItem('insightLogs') || '[]');
-  const today = new Date().toLocaleDateString('ja-JP');
-  const filtered = logs.filter(l => l.date !== today);
-  filtered.unshift({ date: today, text });
-  localStorage.setItem('insightLogs', JSON.stringify(filtered.slice(0, 7)));
-}
 
-function extractTitles(text) {
-  const lines = text.split('\n');
-  return lines
-    .filter(l => l.match(/【.+】/))
-    .map(l => l.replace(/。\s+/g, '。').replace(/\s+/g, ' ').trim())
-    .join('<br>');
-}
 
-function renderLog() {
-  const logs = JSON.parse(localStorage.getItem('insightLogs') || '[]');
-  const container = document.getElementById('insight-log-content');
-  if (logs.length === 0) {
-    container.innerHTML = '<p style="font-size:13px;color:#999">まだログがありません。</p>';
-    return;
-  }
-  container.innerHTML = logs.map(l => `
-    <div style="border-left:2px solid #e0e0e0;padding-left:12px;margin-bottom:14px">
-      <div style="font-size:11px;color:#999;margin-bottom:5px">${l.date}</div>
-      <div style="font-size:12px;line-height:1.8;color:#555">${extractTitles(l.text)}</div>
-    </div>
-  `).join('');
-}
-
-function toggleLog() {
-  const log = document.getElementById('insight-log');
-  const btn = document.getElementById('log-toggle-btn');
-  if (log.style.display === 'none') {
-    renderLog();
-    log.style.display = 'block';
-    btn.textContent = 'ログを閉じる';
-  } else {
-    log.style.display = 'none';
-    btn.textContent = '過去のログを見る';
-  }
-}
 
 function formatInsight(text) {
   return text
@@ -416,47 +332,7 @@ function formatInsight(text) {
     .replace(/$/, '</p>');
 }
 
-async function submitAuth() {
-  const input = document.getElementById('auth-input');
-  const btn = document.getElementById('auth-btn');
-  const errEl = document.getElementById('auth-error');
-  btn.disabled = true;
-  errEl.style.display = 'none';
-
-  try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: input.value })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      sessionStorage.setItem('authed', '1');
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('main-content').style.display = 'block';
-      loadData();
-    } else {
-      errEl.style.display = 'block';
-      input.value = '';
-      input.focus();
-    }
-  } catch(e) {
-    errEl.textContent = 'エラーが発生しました';
-    errEl.style.display = 'block';
-  }
-
-  btn.disabled = false;
-}
-
-document.getElementById('auth-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') submitAuth();
-});
-
-if (sessionStorage.getItem('authed') === '1') {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('main-content').style.display = 'block';
-  loadData();
-}
+loadData();
 </script>
 </body>
 </html>

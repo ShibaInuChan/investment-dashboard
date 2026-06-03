@@ -2,8 +2,14 @@ name: Fetch FRED Indicators
 
 on:
   schedule:
-    - cron: '0 1,13 * * *'  # 毎日 01:00, 13:00 UTC
-  workflow_dispatch:         # 手動実行も可能
+    - cron: '0 1,13 * * *'   # 毎日 01:00, 13:00 UTC（指標データ）
+    - cron: '0 2 25 * *'      # 毎月25日 02:00 UTC（insightまとめ）
+  workflow_dispatch:
+    inputs:
+      run_insight:
+        description: 'insightも生成する'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -24,14 +30,21 @@ jobs:
         run: |
           node scripts/fetch-indicators.js
 
+      - name: Generate insight (monthly on 25th or manual)
+        if: ${{ github.event.schedule == '0 2 25 * *' || github.event.inputs.run_insight == 'true' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node scripts/fetch-insight.js
+
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/indicators.json
+          git add data/indicators.json data/insight.json 2>/dev/null || git add data/indicators.json
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update indicators data"
+            git commit -m "chore: update data"
             git push
           fi
