@@ -38,15 +38,15 @@ function yoyPct(data, idx) {
   return parseFloat(((curr - prev) / prev * 100).toFixed(2));
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function main() {
-  const [us10y, jp10y, cpi, coreCpi, unemployment, fedRate] = await Promise.all([
-    fredFetch('DGS10', 30),
-    fredFetch('IRLTLT01JPM156N', 24),
-    fredFetch('CPIAUCSL', 25),
-    fredFetch('CPILFESL', 25),
-    fredFetch('UNRATE', 13),
-    fredFetch('FEDFUNDS', 13),
-  ]);
+  const us10y      = await fredFetch('DGS10', 30);           await sleep(500);
+  const jp10y      = await fredFetch('IRLTLT01JPM156N', 24); await sleep(500);
+  const cpi        = await fredFetch('CPIAUCSL', 25);        await sleep(500);
+  const coreCpi    = await fredFetch('CPILFESL', 25);        await sleep(500);
+  const unemployment = await fredFetch('UNRATE', 13);        await sleep(500);
+  const fedRate    = await fredFetch('FEDFUNDS', 13);
 
   const cpiYoy = cpi.slice(12).map((_, i) => ({
     date: cpi[12 + i].date.slice(0, 7),
