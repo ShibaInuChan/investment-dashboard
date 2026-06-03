@@ -133,13 +133,18 @@ async function main() {
     .map(b => b.text)
     .join('\n');
 
-  const outPath = path.join(__dirname, '..', 'data', 'insight.json');
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify({
-    insight,
-    generatedAt: new Date().toISOString()
-  }, null, 2));
-  console.log('Saved to', outPath);
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const payload = { insight, generatedAt: now.toISOString() };
+
+  const dataDir = path.join(__dirname, '..', 'data');
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  // 最新（常に上書き）
+  fs.writeFileSync(path.join(dataDir, 'insight.json'), JSON.stringify(payload, null, 2));
+  // 月次アーカイブ
+  fs.writeFileSync(path.join(dataDir, `insight-${yearMonth}.json`), JSON.stringify(payload, null, 2));
+  console.log(`Saved insight.json and insight-${yearMonth}.json`);
 }
 
 main().catch(err => {

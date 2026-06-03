@@ -154,7 +154,9 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
       <button class="insight-btn" onclick="getInsight()">今月のまとめを見る</button>
+      <button class="insight-btn" id="archive-toggle-btn" onclick="toggleArchive()">過去のまとめ</button>
     </div>
+    <div id="archive-list" style="display:none;margin-bottom:10px"></div>
     <div id="insight-output" style="font-size:13px;line-height:1.8;color:#333;background:#f9f9f9;border-radius:6px;padding:12px;min-height:60px">
       <span style="color:#999">上のボタンを押すと今月のAI分析を表示します。毎月25日に更新されます。</span>
     </div>
@@ -290,7 +292,7 @@ async function loadData() {
   document.getElementById('updated-at').textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
 }
 
-async function getInsight() {
+async function getInsight(month) {
   const output = document.getElementById('insight-output');
   const buttons = document.querySelectorAll('.insight-btn');
 
@@ -298,19 +300,44 @@ async function getInsight() {
   output.innerHTML = '<span style="color:#999">読み込み中...</span>';
 
   try {
-    const res = await fetch('/api/insight');
+    const url = month ? `/api/insight?month=${month}` : '/api/insight';
+    const res = await fetch(url);
     const data = await res.json();
     if (data.error) {
       output.innerHTML = '<span style="color:#D85A30">' + data.error + '</span>';
     } else {
       const date = new Date(data.generatedAt).toLocaleDateString('ja-JP');
       output.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:8px">生成日: ' + date + '</div>' + formatInsight(data.insight);
+      if (!month && data.archives) renderArchiveList(data.archives);
     }
   } catch(e) {
     output.innerHTML = '<span style="color:#D85A30">エラーが発生しました: ' + e.message + '</span>';
   }
 
   buttons.forEach(b => b.disabled = false);
+}
+
+function renderArchiveList(archives) {
+  const list = document.getElementById('archive-list');
+  if (!archives || archives.length === 0) return;
+  list.innerHTML = archives.map(m =>
+    `<button class="insight-btn" onclick="getInsight('${m}')" style="font-size:11px">${m}</button>`
+  ).join('');
+}
+
+function toggleArchive() {
+  const list = document.getElementById('archive-list');
+  const btn = document.getElementById('archive-toggle-btn');
+  if (list.style.display === 'none') {
+    getInsight();
+    list.style.display = 'flex';
+    list.style.flexWrap = 'wrap';
+    list.style.gap = '6px';
+    btn.textContent = '過去のまとめを閉じる';
+  } else {
+    list.style.display = 'none';
+    btn.textContent = '過去のまとめ';
+  }
 }
 
 
