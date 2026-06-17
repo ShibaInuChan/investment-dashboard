@@ -24,7 +24,7 @@ AIを活用した投資家向けマクロ経済指標ダッシュボードです
   - 日米金利スプレッド（12ヶ月）
 
 - **AIによる月次マクロ分析**
-  - 毎月25日に Claude AI が最新指標とWeb検索をもとに自動生成
+  - 毎月25日に Tavily で最新ニュースを収集し、Claude AI が構造的分析を自動生成
   - 3つのセクションで insight を提供
     - 【構造的インサイト】
     - 【フェーズ判定】（ノイズ / 調整 / パラダイムシフト）
@@ -40,7 +40,8 @@ APIコストとレート制限を排除するため、データ取得とAI分析
 ```
 GitHub Actions（定期実行）
   ├── 毎日2回      → FRED APIからデータ取得 → data/indicators.json
-  └── 毎月25日     → Claude APIで分析生成  → data/insight.json
+  └── 毎月25日     → Tavily で直近ニュース収集（4クエリ）
+                   → Claude APIで分析生成  → data/insight.json
                                               data/insight-YYYY-MM.json
 
 Vercel（配信）
@@ -60,6 +61,7 @@ Vercel（配信）
 | フロントエンド | HTML5 / Vanilla JavaScript / Chart.js 4.4.1 |
 | バックエンド | Node.js（Vercel サーバーレス関数） |
 | AI | Anthropic Claude API（`claude-sonnet-4-5`） |
+| ニュース収集 | Tavily Search API |
 | 経済データ | FRED API（セントルイス連邦準備銀行） |
 | 定期実行 | GitHub Actions |
 | デプロイ | Vercel |
@@ -72,6 +74,7 @@ Vercel（配信）
 
 - [FRED API キー](https://fred.stlouisfed.org/docs/api/api_key.html)（無料）
 - [Anthropic API キー](https://console.anthropic.com/)
+- [Tavily API キー](https://app.tavily.com/)（月1,000クレジット無料）
 
 ### GitHub Secrets の設定
 
@@ -81,6 +84,7 @@ Vercel（配信）
 |---|---|
 | `FRED_API_KEY` | FRED APIキー |
 | `ANTHROPIC_API_KEY` | Anthropic APIキー |
+| `TAVILY_API_KEY` | Tavily APIキー |
 
 ### Vercel へのデプロイ
 
