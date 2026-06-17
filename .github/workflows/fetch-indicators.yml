@@ -34,6 +34,7 @@ jobs:
         if: ${{ github.event.schedule == '0 2 25 * *' || github.event.inputs.run_insight == 'true' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
           node scripts/fetch-insight.js
 
