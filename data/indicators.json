@@ -423,74 +423,74 @@
   ],
   "unemployment": [
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2025-09-01",
       "value": "4.4"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2025-11-01",
       "value": "4.5"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2025-12-01",
       "value": "4.4"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-01-01",
       "value": "4.3"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-02-01",
       "value": "4.4"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-03-01",
       "value": "4.3"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-04-01",
       "value": "4.3"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-05-01",
       "value": "4.3"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-06-01",
       "value": "4.2"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-07-01",
       "value": "4.1"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-08-01",
       "value": "4.1"
     },
     {
-      "realtime_start": "2026-10-21",
-      "realtime_end": "2026-10-21",
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
       "date": "2026-09-01",
       "value": "4.2"
     }
@@ -575,5 +575,5 @@
       "value": "3.75"
     }
   ],
-  "fetchedAt": "2026-10-30T06:54:25.640Z"
+  "fetchedAt": "2026-10-30T18:27:55.383Z"
 }
